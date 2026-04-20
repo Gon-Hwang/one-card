@@ -440,6 +440,20 @@ body {
 
 .deck-count { font-size: 0.72rem; color: rgba(255,255,255,0.5); margin-top: 4px; text-align: center; }
 
+.draw-pile-area, .discard-pile-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.game-board .card {
+  --card-w: 98px;
+  --card-h: 132px;
+  width: 98px;
+  height: 132px;
+}
+
 /* 카드 */
 .card {
   width: var(--card-w);
@@ -753,6 +767,7 @@ body {
 @media (min-width: 600px) {
   .my-hand .card { --card-w: 75px; --card-h: 112px; width: 75px; height: 112px; }
   .card { --card-w: 84px; --card-h: 124px; width: 84px; height: 124px; }
+  .game-board .card { --card-w: 114px; --card-h: 154px; width: 114px; height: 154px; }
   .card-suit { font-size: 2.6rem; }
   .card-rank { font-size: 1.1rem; }
   .card-rank-bottom { font-size: 1.1rem; }
@@ -763,6 +778,7 @@ body {
   .game-board { padding: 6px; }
   .my-hand .card { --card-w: 54px; --card-h: 82px; width: 54px; height: 82px; }
   .card { --card-w: 62px; --card-h: 94px; width: 62px; height: 94px; }
+  .game-board .card { --card-w: 88px; --card-h: 122px; width: 88px; height: 122px; }
   .card-suit { font-size: 1.8rem; }
   .card-rank { font-size: 0.88rem; }
   .card-rank-bottom { font-size: 0.88rem; }
