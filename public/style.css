@@ -5,8 +5,8 @@
   --green: #1a7a3c;
   --green-dark: #145e2e;
   --green-light: #2a9a52;
-  --card-w: 60px;
-  --card-h: 90px;
+  --card-w: 68px;
+  --card-h: 102px;
   --card-r: 8px;
   --red: #e02020;
   --gold: #f5c842;
@@ -463,26 +463,26 @@ body {
 .card.red-card .card-rank, .card.red-card .card-suit { color: var(--red); }
 .card.black-card .card-rank, .card.black-card .card-suit { color: #111; }
 .card.joker-card { background: #1a1a1a; }
-.card.joker-card .card-rank { color: var(--gold); font-size: 0.7rem; }
-.card.joker-card .card-suit { color: var(--gold); font-size: 1.5rem; }
+.card.joker-card .card-rank { color: var(--gold); font-size: 0.85rem; }
+.card.joker-card .card-suit { color: var(--gold); font-size: 1.8rem; }
 
 .card-rank {
   position: absolute;
-  top: 4px;
-  left: 6px;
-  font-size: 0.85rem;
+  top: 5px;
+  left: 7px;
+  font-size: 1rem;
   font-weight: 900;
   line-height: 1;
 }
 .card-suit {
-  font-size: 1.8rem;
+  font-size: 2.2rem;
   line-height: 1;
 }
 .card-rank-bottom {
   position: absolute;
-  bottom: 4px;
-  right: 6px;
-  font-size: 0.85rem;
+  bottom: 5px;
+  right: 7px;
+  font-size: 1rem;
   font-weight: 900;
   line-height: 1;
   transform: rotate(180deg);
@@ -568,8 +568,8 @@ body {
 
 .my-hand .card {
   flex-shrink: 0;
-  --card-w: 55px;
-  --card-h: 82px;
+  --card-w: 63px;
+  --card-h: 94px;
   width: var(--card-w);
   height: var(--card-h);
 }
@@ -751,16 +751,19 @@ body {
 
 /* 반응형 */
 @media (min-width: 600px) {
-  .my-hand .card { --card-w: 65px; --card-h: 98px; width: 65px; height: 98px; }
-  .card { --card-w: 72px; --card-h: 108px; width: 72px; height: 108px; }
-  .card-suit { font-size: 2.2rem; }
+  .my-hand .card { --card-w: 75px; --card-h: 112px; width: 75px; height: 112px; }
+  .card { --card-w: 84px; --card-h: 124px; width: 84px; height: 124px; }
+  .card-suit { font-size: 2.6rem; }
+  .card-rank { font-size: 1.1rem; }
+  .card-rank-bottom { font-size: 1.1rem; }
 }
 
 @media (max-height: 700px) {
   .opponents-area { max-height: 90px; }
   .game-board { padding: 6px; }
-  .my-hand .card { --card-w: 48px; --card-h: 72px; width: 48px; height: 72px; }
-  .card { --card-w: 55px; --card-h: 82px; width: 55px; height: 82px; }
-  .card-suit { font-size: 1.5rem; }
-  .card-rank { font-size: 0.75rem; }
+  .my-hand .card { --card-w: 54px; --card-h: 82px; width: 54px; height: 82px; }
+  .card { --card-w: 62px; --card-h: 94px; width: 62px; height: 94px; }
+  .card-suit { font-size: 1.8rem; }
+  .card-rank { font-size: 0.88rem; }
+  .card-rank-bottom { font-size: 0.88rem; }
 }
