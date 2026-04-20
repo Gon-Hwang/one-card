@@ -447,6 +447,9 @@ body {
   justify-content: center;
   width: 110px;
 }
+.discard-pile-area {
+  padding-bottom: 20px;
+}
 
 .game-board .card {
   --card-w: 98px;
