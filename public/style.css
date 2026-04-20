@@ -445,6 +445,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  width: 110px;
 }
 
 .game-board .card {
@@ -619,7 +620,7 @@ body {
 /* 이벤트 로그 */
 .event-log {
   position: fixed;
-  top: 48px;
+  bottom: 160px;
   left: 0;
   right: 0;
   display: flex;
@@ -628,7 +629,6 @@ body {
   gap: 4px;
   pointer-events: none;
   z-index: 20;
-  padding-top: 6px;
 }
 .event-item {
   background: rgba(0,0,0,0.75);
