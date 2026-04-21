@@ -77,6 +77,7 @@ function canPlayCard(card) {
   if (drawStack > 0) {
     if (drawStackType === '2') return card.rank === '2';
     if (drawStackType === 'Joker') return card.rank === 'Joker';
+    if (drawStackType === 'A') return card.rank === 'A';
   }
   if (card.rank === 'Joker') return true;
   const effectiveSuit = currentSuit || topCard.suit;
@@ -288,7 +289,7 @@ socket.on('cardPlayed', ({ playerName, card, effect, drawStack }) => {
   const cardStr = card.rank === 'Joker' ? '조커' : `${card.suit}${card.rank}`;
   const effects = {
     draw2: `🃏 ${playerName}이(가) ${cardStr} → 다음 사람 ${drawStack}장 뽑기!`,
-    draw3: `🃏 ${playerName}이(가) ${cardStr} → 다음 사람 3장 뽑기!`,
+    drawA: `🃏 ${playerName}이(가) ${cardStr} → 다음 사람 ${drawStack}장 뽑기!`,
     joker: `★ ${playerName}이(가) 조커! → 다음 사람 ${drawStack}장 뽑기!`,
     reverse: `🔄 ${playerName}이(가) ${cardStr} → 방향 전환!`,
     skip: `⏭ ${playerName}이(가) ${cardStr} → 다음 사람 스킵!`,

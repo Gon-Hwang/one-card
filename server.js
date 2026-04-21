@@ -67,6 +67,7 @@ function canPlay(card, topCard, currentSuit, drawStack, drawStackType) {
   if (drawStack > 0) {
     if (drawStackType === '2') return card.rank === '2';
     if (drawStackType === 'Joker') return card.rank === 'Joker';
+    if (drawStackType === 'A') return card.rank === 'A';
   }
   if (card.rank === 'Joker') return true;
   const effectiveSuit = currentSuit || topCard.suit;
@@ -212,11 +213,11 @@ class GameRoom {
       this.advanceTurn();
       effect = 'draw2';
     } else if (card.rank === 'A') {
-      const nextIdx = (this.currentPlayerIndex + this.direction + this.players.length * 10) % this.players.length;
-      for (let i = 0; i < 3; i++) this.players[nextIdx].hand.push(this.drawFromDeck());
+      this.drawStack += 3;
+      this.drawStackType = 'A';
       this.currentSuit = card.suit;
       this.advanceTurn();
-      effect = 'draw3';
+      effect = 'drawA';
     } else if (card.rank === 'Q') {
       this.direction *= -1;
       this.currentSuit = card.suit;
