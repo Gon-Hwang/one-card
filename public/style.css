@@ -21,6 +21,8 @@ body {
   overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 /* ===== 로비 ===== */
@@ -100,7 +102,25 @@ body {
 .or-divider::after { right: 0; }
 .or-divider span { color: #8ab4d4; font-size: 0.85rem; background: transparent; padding: 0 8px; }
 
-.lobby-divider { text-align: center; margin-bottom: 4px; }
+.lobby-divider {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+  margin-bottom: 4px;
+}
+
+.join-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#roomCode {
+  letter-spacing: 6px;
+  font-size: clamp(1.1rem, 5vw, 1.4rem);
+  text-align: center;
+}
 
 /* 버튼 */
 .btn {
@@ -346,12 +366,12 @@ body {
   font-size: 0.82rem;
   flex-shrink: 0;
 }
-.room-info { color: #aaa; }
+.room-info { color: #aaa; flex: 1; min-width: 0; }
 .room-info strong { color: var(--gold); font-family: monospace; letter-spacing: 2px; }
-.turn-info { font-weight: 700; color: #fff; font-size: 0.9rem; text-align: center; }
+.turn-info { font-weight: 700; color: #fff; font-size: 0.9rem; text-align: center; white-space: nowrap; padding: 0 6px; }
 .turn-info.my-turn { color: var(--gold); animation: pulse 1s ease-in-out infinite; }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
-.direction-info { color: #8ab4d4; font-size: 0.78rem; text-align: right; }
+.direction-info { color: #8ab4d4; font-size: 0.78rem; text-align: right; flex: 1; min-width: 0; }
 
 /* 상대방 영역 */
 .opponents-area {
@@ -436,9 +456,9 @@ body {
   min-height: 0;
 }
 
-.pile-label { font-size: 0.72rem; color: rgba(255,255,255,0.5); margin-bottom: 4px; text-align: center; }
+.pile-label { font-size: 0.72rem; color: rgba(255,255,255,0.5); text-align: center; }
 
-.deck-count { font-size: 0.72rem; color: rgba(255,255,255,0.5); margin-top: 4px; text-align: center; }
+.deck-count { font-size: 0.72rem; color: rgba(255,255,255,0.5); text-align: center; }
 
 .draw-pile-area, .discard-pile-area {
   display: flex;
@@ -446,9 +466,7 @@ body {
   align-items: center;
   justify-content: center;
   width: 110px;
-}
-.discard-pile-area {
-  padding-bottom: 20px;
+  gap: 4px;
 }
 
 .game-board .card {
@@ -552,7 +570,7 @@ body {
 .my-area {
   background: rgba(0,0,0,0.3);
   border-top: 1px solid rgba(255,255,255,0.08);
-  padding: 8px 10px;
+  padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
   flex-shrink: 0;
   overflow: visible;
 }
@@ -581,7 +599,7 @@ body {
 .my-hand {
   display: flex;
   gap: 6px;
-  min-height: calc(var(--card-h) + 4px);
+  min-height: 98px;
 }
 
 .my-hand .card {
@@ -602,7 +620,7 @@ body {
 /* 액션 버튼 */
 .action-buttons {
   position: fixed;
-  bottom: 160px;
+  bottom: calc(160px + env(safe-area-inset-bottom, 0px));
   right: 12px;
   display: flex;
   flex-direction: column;
@@ -623,7 +641,7 @@ body {
 /* 이벤트 로그 */
 .event-log {
   position: fixed;
-  bottom: 160px;
+  bottom: calc(160px + env(safe-area-inset-bottom, 0px));
   left: 0;
   right: 0;
   display: flex;
@@ -696,7 +714,7 @@ body {
 /* 채팅 */
 .chat-toggle {
   position: fixed;
-  bottom: 160px;
+  bottom: calc(160px + env(safe-area-inset-bottom, 0px));
   left: 12px;
   width: 44px;
   height: 44px;
@@ -767,6 +785,13 @@ body {
 .chat-input-row input:focus { border-color: var(--gold); }
 
 /* 반응형 */
+@media (max-width: 360px) {
+  .draw-pile-area, .discard-pile-area { width: 90px; }
+  .game-board { gap: 10px; padding: 6px; }
+  .game-board .card { --card-w: 84px; --card-h: 116px; width: 84px; height: 116px; }
+  .opponent-card { min-width: 58px; padding: 4px 8px; }
+}
+
 @media (min-width: 600px) {
   .my-hand .card { --card-w: 75px; --card-h: 112px; width: 75px; height: 112px; }
   .card { --card-w: 84px; --card-h: 124px; width: 84px; height: 124px; }

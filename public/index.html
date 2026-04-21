@@ -30,8 +30,8 @@
             <span class="ai-count-unit">명</span>
           </div>
         </div>
-        <button id="aiGameBtn" class="btn btn-primary btn-lg">🤖 AI와 게임하기</button>
-        <button id="createBtn" class="btn btn-secondary btn-lg" style="margin-top:8px">👥 멀티플레이 방 만들기</button>
+        <button id="aiGameBtn" class="btn btn-primary btn-lg btn-block">🤖 AI와 게임하기</button>
+        <button id="createBtn" class="btn btn-secondary btn-lg btn-block">👥 멀티플레이 방 만들기</button>
       </div>
 
       <div class="or-divider"><span>또는</span></div>
@@ -39,11 +39,10 @@
       <div class="join-section">
         <div class="input-group">
           <label for="roomCode">방 코드</label>
-          <input type="tel" id="roomCode" placeholder="방 코드 5자리 입력" maxlength="5" autocomplete="off"
-            inputmode="numeric" pattern="[0-9]*"
-            style="letter-spacing:4px; font-size:1.4rem; text-align:center;">
+          <input type="tel" id="roomCode" placeholder="5자리 입력" maxlength="5" autocomplete="off"
+            inputmode="numeric" pattern="[0-9]*">
         </div>
-        <button id="joinBtn" class="btn btn-secondary btn-lg">방 참가하기</button>
+        <button id="joinBtn" class="btn btn-secondary btn-lg btn-block">방 참가하기</button>
       </div>
 
       <div id="errorMsg" class="error-msg hidden"></div>
