@@ -114,12 +114,36 @@ function animateCardFly(fromEl, card, toRect) {
   }));
 }
 
-// 덱에서 toEl 방향으로 count장 순차 비행 (뽑기 애니메이션)
-function animateCardsFromDeck(toEl, count) {
-  const n      = Math.min(count, 6);
-  const toRect = toEl.getBoundingClientRect(); // DOM 변경 전에 미리 캡처
+// 덱에서 수직으로 낙하 (뽑기 애니메이션)
+function animateCardsFromDeck(_toEl, count) {
+  const n = Math.min(count, 6);
   for (let i = 0; i < n; i++) {
-    setTimeout(() => animateCardFly(drawPile, null, toRect), i * 90);
+    setTimeout(() => {
+      const fromRect = drawPile.getBoundingClientRect();
+      const clone = document.createElement('div');
+      clone.className = 'card card-back card-fly';
+      clone.innerHTML = '<div class="card-back-design">🃏</div>';
+      Object.assign(clone.style, {
+        position: 'fixed',
+        top:    fromRect.top    + 'px',
+        left:   fromRect.left   + 'px',
+        width:  fromRect.width  + 'px',
+        height: fromRect.height + 'px',
+        zIndex: '600',
+        pointerEvents: 'none',
+        willChange: 'transform, opacity',
+        margin: '0',
+      });
+      document.body.appendChild(clone);
+
+      const fallDist = window.innerHeight - fromRect.top + 80;
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        clone.style.transition = 'transform 0.38s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.14s ease 0.24s';
+        clone.style.transform  = `translateY(${fallDist}px) scale(1.08)`;
+        clone.style.opacity    = '0';
+        setTimeout(() => clone.remove(), 560);
+      }));
+    }, i * 90);
   }
 }
 
