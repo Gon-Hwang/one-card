@@ -142,10 +142,6 @@ function renderState(state) {
     const div = document.createElement('div');
     div.className = 'opponent-card';
     if (p.id === state.currentPlayerId) div.classList.add('active-turn');
-    // 원카드 미선언 신고 대상 강조
-    if (state.pendingOneCardReport && state.pendingOneCardReport.playerId === p.id) {
-      div.classList.add('pending-report');
-    }
 
     const miniCards = Math.min(p.cardCount, 8);
     const miniHTML = Array.from({ length: miniCards }, () => '<div class="mini-card"></div>').join('');
@@ -187,15 +183,6 @@ function renderState(state) {
     oneCardBtn.classList.toggle('hidden', !showOneCard);
   }
 
-  // 신고 창 버튼: pendingOneCardReport 있고 내가 아닌 경우
-  const reportWindowEl = document.getElementById('reportWindowBtn');
-  const pendingReport = state.pendingOneCardReport;
-  if (pendingReport && pendingReport.playerId !== mySocketId) {
-    reportWindowEl.classList.remove('hidden');
-    document.getElementById('reportTargetName').textContent = pendingReport.playerName;
-  } else {
-    reportWindowEl.classList.add('hidden');
-  }
 
   // Draw pile clickable only on my turn
   drawPile.style.opacity = isMyTurn ? '1' : '0.6';
