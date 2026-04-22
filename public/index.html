@@ -4,6 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>원카드 🃏</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icon.svg">
+  <meta name="theme-color" content="#1a4a28">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="원카드">
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="lobby-body">
@@ -47,6 +53,8 @@
 
       <div id="errorMsg" class="error-msg hidden"></div>
     </div>
+
+    <button class="pwa-install-btn hidden" id="installBtn">📲 홈 화면에 앱으로 설치하기</button>
 
 <div class="rules-summary">
       <h3>📖 원카드 규칙</h3>
@@ -99,5 +107,26 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="lobby.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js');
+    }
+    let _deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      _deferredPrompt = e;
+      document.getElementById('installBtn').classList.remove('hidden');
+    });
+    document.getElementById('installBtn').addEventListener('click', async () => {
+      if (!_deferredPrompt) return;
+      _deferredPrompt.prompt();
+      const { outcome } = await _deferredPrompt.userChoice;
+      _deferredPrompt = null;
+      if (outcome === 'accepted') document.getElementById('installBtn').classList.add('hidden');
+    });
+    window.addEventListener('appinstalled', () => {
+      document.getElementById('installBtn').classList.add('hidden');
+    });
+  </script>
 </body>
 </html>

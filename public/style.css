@@ -239,6 +239,27 @@ body {
 .rule-card.joker { background: #222; color: var(--gold); }
 .rule-card.warn { background: var(--gold); color: #000; font-size: 0.7rem; }
 
+/* PWA 설치 버튼 */
+.pwa-install-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 16px;
+  background: rgba(245, 200, 66, 0.08);
+  border: 1px dashed rgba(245, 200, 66, 0.4);
+  border-radius: 10px;
+  color: #f5c842;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 14px;
+  transition: background 0.2s, border-color 0.2s;
+}
+.pwa-install-btn:hover { background: rgba(245,200,66,0.15); border-color: rgba(245,200,66,0.7); }
+.pwa-install-btn:active { transform: scale(0.98); }
+
 /* ===== 대기실 ===== */
 #waitingRoom {
   position: fixed;
@@ -800,7 +821,7 @@ body {
   100% { transform: scale(1)    translateY(0)      rotate( 0deg); opacity: 1;   }
 }
 .card-land {
-  animation: cardLand 0.21s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  animation: cardLand 0.27s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
 /* 뽑기 덱 파동 */

@@ -66,11 +66,13 @@ function canPlayCard(card) {
   return card.suit === effectiveSuit || card.rank === topCard.rank;
 }
 
-// ── 카드 날아가는 애니메이션 ──────────────────────────────────────────
-function animateCardFly(fromEl, card) {
+// ── 카드 애니메이션 ────────────────────────────────────────────────────
+
+// toRect: 미리 캡처한 DOMRect (없으면 버린 패 위치 사용)
+function animateCardFly(fromEl, card, toRect) {
   if (!fromEl) return;
   const fromRect = fromEl.getBoundingClientRect();
-  const toRect   = topCardDisplay.getBoundingClientRect();
+  const tR = toRect || topCardDisplay.getBoundingClientRect();
 
   const clone = document.createElement('div');
   const colorClass = card ? cardColorClass(card) : 'card-back';
@@ -88,8 +90,8 @@ function animateCardFly(fromEl, card) {
 
   Object.assign(clone.style, {
     position: 'fixed',
-    top:    fromRect.top  + 'px',
-    left:   fromRect.left + 'px',
+    top:    fromRect.top    + 'px',
+    left:   fromRect.left   + 'px',
     width:  fromRect.width  + 'px',
     height: fromRect.height + 'px',
     zIndex: '600',
@@ -99,22 +101,26 @@ function animateCardFly(fromEl, card) {
   });
   document.body.appendChild(clone);
 
-  const dx = (toRect.left + toRect.width  / 2) - (fromRect.left + fromRect.width  / 2);
-  const dy = (toRect.top  + toRect.height / 2) - (fromRect.top  + fromRect.height / 2);
-  const scale = Math.min(toRect.width / fromRect.width, toRect.height / fromRect.height) * 0.85;
+  const dx    = (tR.left + tR.width  / 2) - (fromRect.left + fromRect.width  / 2);
+  const dy    = (tR.top  + tR.height / 2) - (fromRect.top  + fromRect.height / 2);
+  const scale = Math.min(tR.width / fromRect.width, tR.height / fromRect.height) * 0.85;
+  const rot   = (Math.random() * 14 - 7).toFixed(1);
 
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    clone.style.transition = 'transform 0.19s cubic-bezier(0.4,0,0.2,1), opacity 0.08s ease 0.13s';
-    clone.style.transform  = `translate(${dx}px,${dy}px) scale(${scale})`;
+    clone.style.transition = 'transform 0.30s cubic-bezier(0.4,0,0.2,1), opacity 0.10s ease 0.22s';
+    clone.style.transform  = `translate(${dx}px,${dy}px) scale(${scale}) rotate(${rot}deg)`;
     clone.style.opacity    = '0';
-    setTimeout(() => clone.remove(), 320);
+    setTimeout(() => clone.remove(), 460);
   }));
 }
 
-function triggerDiscardLand() {
-  topCardDisplay.classList.remove('card-land');
-  void topCardDisplay.offsetWidth;
-  topCardDisplay.classList.add('card-land');
+// 덱에서 toEl 방향으로 count장 순차 비행 (뽑기 애니메이션)
+function animateCardsFromDeck(toEl, count) {
+  const n      = Math.min(count, 6);
+  const toRect = toEl.getBoundingClientRect(); // DOM 변경 전에 미리 캡처
+  for (let i = 0; i < n; i++) {
+    setTimeout(() => animateCardFly(drawPile, null, toRect), i * 90);
+  }
 }
 
 function triggerDeckPulse() {
@@ -336,7 +342,17 @@ socket.on('cardPlayed', ({ playerName, card, effect, drawStack }) => {
 });
 
 socket.on('cardDrawn', ({ playerName, count }) => {
+  // 뽑는 장수만큼 덱에서 카드 날아가기
+  const isMe = playerName === myName;
+  let toEl = isMe ? myHand : opponentsArea;
+  if (!isMe) {
+    const opEl = [...opponentsArea.querySelectorAll('.opponent-card')]
+      .find(el => el.dataset.playerName === playerName);
+    if (opEl) toEl = opEl;
+  }
+  animateCardsFromDeck(toEl, count);
   triggerDeckPulse();
+
   const msg = count > 1 ? `😱 ${playerName}이(가) ${count}장 뽑음!` : `${playerName}이(가) 카드 뽑음`;
   showEvent(msg);
   addChatMsg('', msg, true);

@@ -1,0 +1,18 @@
+{
+  "name": "원카드",
+  "short_name": "원카드",
+  "description": "최대 10명이 함께하는 멀티플레이 원카드 카드 게임",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0d1b2a",
+  "theme_color": "#1a4a28",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="88" fill="#1a4a28"/>
+  <rect x="52" y="44" width="408" height="424" rx="48" fill="#ffffff" stroke="#e0e0e0" stroke-width="3"/>
+  <text x="88"  y="188" font-family="Georgia,Times,serif" font-size="130" font-weight="900" fill="#cc0000">♥</text>
+  <text x="256" y="318" font-family="Arial Black,Arial,sans-serif" font-size="148" font-weight="900" fill="#1a4a28" text-anchor="middle">1</text>
+  <text x="424" y="442" font-family="Georgia,Times,serif" font-size="130" font-weight="900" fill="#cc0000" transform="rotate(180 424 442)">♥</text>
+</svg>
