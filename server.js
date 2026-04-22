@@ -90,6 +90,7 @@ class GameRoom {
     this.winner = null;
     this.hostId = null;
     this.pendingSuit = false;
+    this.pendingOneCardReport = null;
   }
 
   addPlayer(socketId, name) {
@@ -135,6 +136,7 @@ class GameRoom {
     this.gameOver = false;
     this.winner = null;
     this.pendingSuit = false;
+    this.pendingOneCardReport = null;
 
     for (const player of this.players) {
       player.hand = [];
@@ -183,6 +185,11 @@ class GameRoom {
     if (this.currentPlayer.id !== socketId) return { success: false, error: '당신 차례가 아닙니다' };
     if (this.pendingSuit) return { success: false, error: '무늬를 먼저 선택하세요' };
 
+    // 신고 창 닫기: 미선언 플레이어가 아닌 다른 플레이어가 행동하면 창 종료
+    if (this.pendingOneCardReport && this.pendingOneCardReport.playerId !== socketId) {
+      this.pendingOneCardReport = null;
+    }
+
     const card = player.hand[cardIndex];
     if (!card) return { success: false, error: '잘못된 카드' };
 
@@ -192,6 +199,22 @@ class GameRoom {
 
     if (card.rank === '7' && !chosenSuit) {
       return { success: false, needSuit: true };
+    }
+
+    // 2장 → 1장으로 가는 경우: 스냅샷 저장 + 선언 여부 체크
+    const hadTwoCards = player.hand.length === 2;
+    const wasOneCardSafe = player.oneCardSafe;
+    let snapshot = null;
+    if (hadTwoCards) {
+      snapshot = {
+        discardPile: [...this.discardPile],
+        drawStack: this.drawStack,
+        drawStackType: this.drawStackType,
+        currentSuit: this.currentSuit,
+        direction: this.direction,
+        currentPlayerIndex: this.currentPlayerIndex,
+        playerHand: [...player.hand]
+      };
     }
 
     player.hand.splice(cardIndex, 1);
@@ -251,13 +274,24 @@ class GameRoom {
       effect = 'normal';
     }
 
-    return { success: true, effect, drawStack: this.drawStack, card };
+    // 2장에서 1장이 됐고 선언 안 했으면 신고 창 열기
+    if (hadTwoCards && player.hand.length === 1 && !wasOneCardSafe) {
+      this.pendingOneCardReport = { playerId: socketId, playerName: player.name, snapshot };
+    }
+
+    const oneCardDeclaration = hadTwoCards && player.hand.length === 1 && wasOneCardSafe;
+    return { success: true, effect, drawStack: this.drawStack, card, oneCardDeclaration };
   }
 
   drawCards(socketId) {
     const player = this.players.find(p => p.id === socketId);
     if (!player) return { success: false, error: '플레이어 없음' };
     if (this.currentPlayer.id !== socketId) return { success: false, error: '당신 차례가 아닙니다' };
+
+    // 신고 창 닫기: 다른 플레이어가 뽑기 행동 시 창 종료
+    if (this.pendingOneCardReport && this.pendingOneCardReport.playerId !== socketId) {
+      this.pendingOneCardReport = null;
+    }
 
     const count = this.drawStack > 0 ? this.drawStack : 1;
     const drawn = [];
@@ -267,6 +301,7 @@ class GameRoom {
       drawn.push(card);
     }
 
+    player.oneCardSafe = false;
     this.drawStack = 0;
     this.drawStackType = null;
     this.advanceTurn();
@@ -276,19 +311,36 @@ class GameRoom {
 
   declareOneCard(socketId) {
     const player = this.players.find(p => p.id === socketId);
-    if (!player || player.hand.length !== 1) return false;
+    if (!player) return false;
+    if (this.currentPlayer?.id !== socketId) return false;
+    if (player.hand.length !== 2) return false;
     player.oneCardSafe = true;
     return true;
   }
 
-  reportPlayer(reporterSocketId, targetSocketId) {
-    const reporter = this.players.find(p => p.id === reporterSocketId);
-    const target = this.players.find(p => p.id === targetSocketId);
-    if (!reporter || !target) return { success: false };
-    if (target.hand.length !== 1 || target.oneCardSafe) return { success: false };
+  reportUndeclared(reporterSocketId) {
+    if (!this.pendingOneCardReport) return { success: false };
+    const { playerId, playerName, snapshot } = this.pendingOneCardReport;
+    if (playerId === reporterSocketId) return { success: false };
 
+    const target = this.players.find(p => p.id === playerId);
+    if (!target) { this.pendingOneCardReport = null; return { success: false }; }
+
+    // 게임 상태 복원 (카드 제출 취소)
+    this.discardPile = [...snapshot.discardPile];
+    this.drawStack = snapshot.drawStack;
+    this.drawStackType = snapshot.drawStackType;
+    this.currentSuit = snapshot.currentSuit;
+    this.direction = snapshot.direction;
+    this.currentPlayerIndex = snapshot.currentPlayerIndex;
+    target.hand = [...snapshot.playerHand];
+    target.oneCardSafe = false;
+
+    // 벌칙 카드 1장 추가
     target.hand.push(this.drawFromDeck());
-    return { success: true, targetName: target.name };
+
+    this.pendingOneCardReport = null;
+    return { success: true, targetName: playerName };
   }
 
   getState(forSocketId) {
@@ -305,6 +357,9 @@ class GameRoom {
       drawStackType: this.drawStackType,
       deckCount: this.deck.length,
       hostId: this.hostId,
+      pendingOneCardReport: this.pendingOneCardReport
+        ? { playerId: this.pendingOneCardReport.playerId, playerName: this.pendingOneCardReport.playerName }
+        : null,
       players: this.players.map(p => ({
         id: p.id,
         name: p.name,
@@ -381,6 +436,11 @@ function performAITurn(room, bot) {
     chosenSuit = SUITS.reduce((a, b) => (counts[a] || 0) >= (counts[b] || 0) ? a : b);
   }
 
+  // AI는 2장일 때 항상 원카드 선언
+  if (bot.hand.length === 2) {
+    bot.oneCardSafe = true;
+  }
+
   const result = room.playCard(bot.id, i, chosenSuit);
 
   if (!result.success) {
@@ -398,11 +458,6 @@ function performAITurn(room, bot) {
     return;
   }
 
-  // 원카드 자동 선언
-  if (bot.hand.length === 1 && !bot.oneCardSafe) {
-    bot.oneCardSafe = true;
-  }
-
   broadcastState(room);
   io.to(room.id).emit('cardPlayed', {
     playerName: bot.name,
@@ -411,7 +466,7 @@ function performAITurn(room, bot) {
     drawStack: result.drawStack
   });
 
-  if (bot.oneCardSafe && bot.hand.length === 1) {
+  if (result.oneCardDeclaration) {
     io.to(room.id).emit('oneCardDeclared', { playerName: bot.name });
   }
 
@@ -538,6 +593,9 @@ io.on('connection', (socket) => {
       effect: result.effect,
       drawStack: result.drawStack
     });
+    if (result.oneCardDeclaration) {
+      io.to(currentRoomId).emit('oneCardDeclared', { playerName });
+    }
     scheduleAIMove(room);
   });
 
@@ -562,13 +620,13 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('reportPlayer', ({ targetId }) => {
+  socket.on('reportUndeclared', () => {
     const room = rooms.get(currentRoomId);
     if (!room || !room.gameStarted) return;
-    const result = room.reportPlayer(socket.id, targetId);
+    const result = room.reportUndeclared(socket.id);
     if (result.success) {
       broadcastState(room);
-      io.to(currentRoomId).emit('playerReported', {
+      io.to(currentRoomId).emit('oneCardReported', {
         reporterName: playerName,
         targetName: result.targetName
       });

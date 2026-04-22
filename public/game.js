@@ -113,7 +113,6 @@ function renderState(state) {
     topCardDisplay.className = `card ${colorClass}`;
     topCardRank.textContent = tc.rank === 'Joker' ? 'J○' : tc.rank;
     topCardSuit.textContent = tc.suit;
-    // add bottom rank
     let bottomEl = topCardDisplay.querySelector('.card-rank-bottom');
     if (!bottomEl) {
       bottomEl = document.createElement('div');
@@ -124,8 +123,6 @@ function renderState(state) {
   }
 
   // Current suit indicator (when 7 was played)
-  const topCard = state.topCard;
-  const suitChanged = topCard && state.currentSuit !== topCard.suit;
   if (state.currentSuit) {
     currentSuitDisplay.classList.remove('hidden');
     currentSuitDisplay.classList.add('visible');
@@ -145,31 +142,21 @@ function renderState(state) {
     const div = document.createElement('div');
     div.className = 'opponent-card';
     if (p.id === state.currentPlayerId) div.classList.add('active-turn');
-    if (p.cardCount === 1 && !p.oneCardSafe) div.classList.add('one-card-alert');
+    // 원카드 미선언 신고 대상 강조
+    if (state.pendingOneCardReport && state.pendingOneCardReport.playerId === p.id) {
+      div.classList.add('pending-report');
+    }
 
     const miniCards = Math.min(p.cardCount, 8);
     const miniHTML = Array.from({ length: miniCards }, () => '<div class="mini-card"></div>').join('');
 
-    const showOneCardCall = p.cardCount === 1 && !p.oneCardSafe;
     div.innerHTML = `
       <div class="opponent-name">${p.isBot ? '🤖 ' : ''}${p.name}</div>
       <div class="opponent-count">${p.cardCount}장</div>
       <div class="opponent-mini-cards">${miniHTML}</div>
-      ${showOneCardCall
-        ? `<button class="report-btn onecard-call-btn" data-id="${p.id}">원카드!</button>`
-        : `<button class="report-btn" data-id="${p.id}" style="opacity:0;pointer-events:none">원카드!</button>`
-      }
     `;
     opponentsArea.appendChild(div);
   }
-
-  // Report button handlers
-  opponentsArea.querySelectorAll('.report-btn').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      socket.emit('reportPlayer', { targetId: btn.dataset.id });
-    });
-  });
 
   // My hand
   if (me?.hand) {
@@ -195,9 +182,19 @@ function renderState(state) {
       myHand.appendChild(wrapper);
     });
 
-    // One card button
-    const showOneCard = me.hand.length === 1 && !me.oneCardSafe;
+    // 원카드 선언 버튼: 내 턴, 2장, 아직 선언 안 함
+    const showOneCard = isMyTurn && me.hand.length === 2 && !me.oneCardSafe;
     oneCardBtn.classList.toggle('hidden', !showOneCard);
+  }
+
+  // 신고 창 버튼: pendingOneCardReport 있고 내가 아닌 경우
+  const reportWindowEl = document.getElementById('reportWindowBtn');
+  const pendingReport = state.pendingOneCardReport;
+  if (pendingReport && pendingReport.playerId !== mySocketId) {
+    reportWindowEl.classList.remove('hidden');
+    document.getElementById('reportTargetName').textContent = pendingReport.playerName;
+  } else {
+    reportWindowEl.classList.add('hidden');
   }
 
   // Draw pile clickable only on my turn
@@ -220,9 +217,35 @@ drawPile.addEventListener('click', () => {
   socket.emit('drawCard');
 });
 
-// One card button
+// 원카드 선언 버튼 (2장일 때)
 oneCardBtn.addEventListener('click', () => {
   socket.emit('declareOneCard');
+});
+
+// 신고 버튼 (미선언 신고 창이 열렸을 때)
+document.getElementById('reportBtn').addEventListener('click', () => {
+  if (!currentState?.pendingOneCardReport) return;
+  if (currentState.pendingOneCardReport.playerId === mySocketId) return;
+  socket.emit('reportUndeclared');
+});
+
+// 스페이스바: 원카드 선언 (내 턴 + 2장) 또는 미선언 신고
+document.addEventListener('keydown', e => {
+  if (e.code !== 'Space') return;
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  e.preventDefault();
+  if (!currentState) return;
+
+  const me = currentState.players.find(p => p.id === mySocketId);
+  const isMyTurn = currentState.currentPlayerId === mySocketId;
+
+  if (isMyTurn && me?.hand?.length === 2 && !me?.oneCardSafe) {
+    socket.emit('declareOneCard');
+    return;
+  }
+  if (currentState.pendingOneCardReport && currentState.pendingOneCardReport.playerId !== mySocketId) {
+    socket.emit('reportUndeclared');
+  }
 });
 
 // Suit modal
@@ -282,6 +305,14 @@ function showEvent(msg) {
   setTimeout(() => el.remove(), 3100);
 }
 
+function showOneCardBanner(name) {
+  const banner = document.getElementById('oneCardBanner');
+  const nameEl = document.getElementById('oneCardBannerName');
+  nameEl.textContent = name;
+  banner.classList.remove('hidden');
+  setTimeout(() => banner.classList.add('hidden'), 2000);
+}
+
 // Socket events
 socket.on('gameUpdate', ({ state }) => renderState(state));
 
@@ -310,13 +341,14 @@ socket.on('cardDrawn', ({ playerName, count }) => {
 });
 
 socket.on('oneCardDeclared', ({ playerName }) => {
+  showOneCardBanner(playerName);
   const msg = `🎴 ${playerName}: 원카드!!`;
   showEvent(msg);
   addChatMsg('', msg, true);
 });
 
-socket.on('playerReported', ({ reporterName, targetName }) => {
-  const msg = `⚠️ ${reporterName}이(가) 먼저 원카드! → ${targetName} 1장 추가!`;
+socket.on('oneCardReported', ({ reporterName, targetName }) => {
+  const msg = `⚠️ ${reporterName}이(가) 신고! → ${targetName} 원카드 취소 + 1장 추가!`;
   showEvent(msg);
   addChatMsg('', msg, true);
 });

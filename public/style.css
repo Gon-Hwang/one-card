@@ -784,6 +784,81 @@ body {
 }
 .chat-input-row input:focus { border-color: var(--gold); }
 
+/* ===== 원카드 선언 배너 ===== */
+.onecard-banner {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.4);
+}
+.onecard-banner.hidden { display: none !important; }
+.onecard-banner-content {
+  background: linear-gradient(135deg, #c0392b, #8e1a1a);
+  color: #fff;
+  padding: 32px 64px;
+  border-radius: 24px;
+  text-align: center;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 50px rgba(224,32,32,0.4);
+  animation: bannerPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.onecard-banner-text {
+  font-size: clamp(2.8rem, 12vw, 5rem);
+  font-weight: 900;
+  letter-spacing: 4px;
+  text-shadow: 0 3px 10px rgba(0,0,0,0.5);
+}
+.onecard-banner-name {
+  font-size: clamp(1rem, 4vw, 1.5rem);
+  margin-top: 10px;
+  opacity: 0.9;
+}
+@keyframes bannerPop {
+  from { transform: scale(0.3); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+/* ===== 신고 버튼 ===== */
+.btn-warning {
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+  color: #fff;
+  animation: glow-orange 1s ease-in-out infinite alternate;
+  font-size: 0.9rem;
+  padding: 10px 14px;
+  border-radius: 12px;
+}
+@keyframes glow-orange {
+  from { box-shadow: 0 0 6px rgba(243,156,18,0.5); }
+  to   { box-shadow: 0 0 22px rgba(243,156,18,0.95); }
+}
+
+/* 스페이스바 힌트 */
+.key-hint {
+  display: inline-block;
+  background: rgba(255,255,255,0.22);
+  border: 1px solid rgba(255,255,255,0.5);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 0.65em;
+  font-weight: 700;
+  vertical-align: middle;
+  margin-left: 4px;
+  letter-spacing: 0;
+}
+
+/* 원카드 미선언 상대 강조 */
+.opponent-card.pending-report {
+  border-color: #f39c12 !important;
+  animation: pending-pulse 0.65s ease-in-out infinite;
+}
+@keyframes pending-pulse {
+  0%, 100% { border-color: #f39c12; background: rgba(243,156,18,0.18); }
+  50%       { border-color: rgba(243,156,18,0.3); background: rgba(243,156,18,0.05); }
+}
+
 /* 반응형 */
 @media (max-width: 360px) {
   .draw-pile-area, .discard-pile-area { width: 90px; }

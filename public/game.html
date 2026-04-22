@@ -57,9 +57,20 @@
     </div>
   </div>
 
+  <!-- 원카드 선언 배너 -->
+  <div class="onecard-banner hidden" id="oneCardBanner">
+    <div class="onecard-banner-content">
+      <div class="onecard-banner-text">원카드!</div>
+      <div class="onecard-banner-name" id="oneCardBannerName"></div>
+    </div>
+  </div>
+
   <!-- 액션 버튼들 -->
   <div class="action-buttons">
-    <button class="btn btn-danger one-card-btn hidden" id="oneCardBtn">원카드! 🎴</button>
+    <button class="btn btn-danger one-card-btn hidden" id="oneCardBtn">원카드! 🎴 <span class="key-hint">SPACE</span></button>
+    <div class="hidden" id="reportWindowBtn">
+      <button class="btn btn-warning report-action-btn" id="reportBtn">⚠️ <span id="reportTargetName"></span> 신고! <span class="key-hint">SPACE</span></button>
+    </div>
   </div>
 
   <!-- 이벤트 알림 -->
