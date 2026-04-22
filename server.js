@@ -65,9 +65,9 @@ function isRed(suit) {
 
 function canPlay(card, topCard, currentSuit, drawStack, drawStackType) {
   if (drawStack > 0) {
-    if (drawStackType === '2') return card.rank === '2';
+    if (drawStackType === '2') return card.rank === '2' || card.rank === 'Joker';
     if (drawStackType === 'Joker') return card.rank === 'Joker';
-    if (drawStackType === 'A') return card.rank === 'A';
+    if (drawStackType === 'A') return card.rank === 'A' || card.rank === 'Joker';
   }
   if (card.rank === 'Joker') return true;
   const effectiveSuit = currentSuit || topCard.suit;
