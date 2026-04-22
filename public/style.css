@@ -784,6 +784,36 @@ body {
 }
 .chat-input-row input:focus { border-color: var(--gold); }
 
+/* ===== 카드 제출 애니메이션 ===== */
+
+/* 날아가는 클론 카드 */
+.card-fly {
+  border-radius: var(--card-r) !important;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.55) !important;
+  transform-origin: center center;
+}
+
+/* 버린 패 새 카드 착지 */
+@keyframes cardLand {
+  0%   { transform: scale(1.35) translateY(-14px) rotate(-6deg); opacity: 0.6; }
+  55%  { transform: scale(0.93) translateY(3px)   rotate( 2deg); opacity: 1;   }
+  100% { transform: scale(1)    translateY(0)      rotate( 0deg); opacity: 1;   }
+}
+.card-land {
+  animation: cardLand 0.21s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* 뽑기 덱 파동 */
+@keyframes deckDeal {
+  0%   { transform: scale(1)    rotate(0deg);  }
+  30%  { transform: scale(1.1)  rotate(-4deg); }
+  65%  { transform: scale(1.05) rotate( 3deg); }
+  100% { transform: scale(1)    rotate(0deg);  }
+}
+.deck-deal {
+  animation: deckDeal 0.27s ease !important;
+}
+
 /* ===== 원카드 선언 배너 ===== */
 .onecard-banner {
   position: fixed;

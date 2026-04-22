@@ -17,7 +17,6 @@ const currentSuitIcon = document.getElementById('currentSuitIcon');
 const myHand = document.getElementById('myHand');
 const myNameEl = document.getElementById('myName');
 const myCardCount = document.getElementById('myCardCount');
-const oneCardBtn = document.getElementById('oneCardBtn');
 const eventLog = document.getElementById('eventLog');
 const suitModal = document.getElementById('suitModal');
 const gameOverModal = document.getElementById('gameOverModal');
@@ -36,44 +35,27 @@ let currentState = null;
 let pendingCardIndex = null;
 let myName = sessionStorage.getItem('playerName') || '나';
 let roomId = sessionStorage.getItem('roomId') || '---';
+let prevTopCardKey = null;
 
 socket.on('connect', () => {
   mySocketId = socket.id;
   myNameEl.textContent = myName;
   topRoomCode.textContent = roomId;
   sessionStorage.removeItem('gameState');
-
-  if (roomId && myName) {
-    socket.emit('rejoinRoom', { roomId, name: myName });
-  }
+  if (roomId && myName) socket.emit('rejoinRoom', { roomId, name: myName });
 });
 
-function isRed(suit) {
-  return suit === '♥' || suit === '♦';
-}
+function isRed(suit) { return suit === '♥' || suit === '♦'; }
 
 function cardColorClass(card) {
   if (card.rank === 'Joker') return 'joker-card';
   return isRed(card.suit) ? 'red-card' : 'black-card';
 }
 
-function buildCardHTML(card) {
-  const colorClass = cardColorClass(card);
-  const rank = card.rank === 'Joker' ? 'J○' : card.rank;
-  return `
-    <div class="card ${colorClass}">
-      <div class="card-rank">${rank}</div>
-      <div class="card-suit">${card.suit}</div>
-      <div class="card-rank-bottom">${rank}</div>
-    </div>
-  `;
-}
-
 function canPlayCard(card) {
   if (!currentState) return false;
   const { topCard, currentSuit, drawStack, drawStackType } = currentState;
   if (!topCard) return false;
-
   if (drawStack > 0) {
     if (drawStackType === '2') return card.rank === '2';
     if (drawStackType === 'Joker') return card.rank === 'Joker';
@@ -84,6 +66,65 @@ function canPlayCard(card) {
   return card.suit === effectiveSuit || card.rank === topCard.rank;
 }
 
+// ── 카드 날아가는 애니메이션 ──────────────────────────────────────────
+function animateCardFly(fromEl, card) {
+  if (!fromEl) return;
+  const fromRect = fromEl.getBoundingClientRect();
+  const toRect   = topCardDisplay.getBoundingClientRect();
+
+  const clone = document.createElement('div');
+  const colorClass = card ? cardColorClass(card) : 'card-back';
+  clone.className = `card ${colorClass} card-fly`;
+
+  if (card) {
+    const rank = card.rank === 'Joker' ? 'J○' : card.rank;
+    clone.innerHTML = `
+      <div class="card-rank">${rank}</div>
+      <div class="card-suit">${card.suit}</div>
+      <div class="card-rank-bottom">${rank}</div>`;
+  } else {
+    clone.innerHTML = '<div class="card-back-design">🃏</div>';
+  }
+
+  Object.assign(clone.style, {
+    position: 'fixed',
+    top:    fromRect.top  + 'px',
+    left:   fromRect.left + 'px',
+    width:  fromRect.width  + 'px',
+    height: fromRect.height + 'px',
+    zIndex: '600',
+    pointerEvents: 'none',
+    willChange: 'transform, opacity',
+    margin: '0',
+  });
+  document.body.appendChild(clone);
+
+  const dx = (toRect.left + toRect.width  / 2) - (fromRect.left + fromRect.width  / 2);
+  const dy = (toRect.top  + toRect.height / 2) - (fromRect.top  + fromRect.height / 2);
+  const scale = Math.min(toRect.width / fromRect.width, toRect.height / fromRect.height) * 0.85;
+
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    clone.style.transition = 'transform 0.19s cubic-bezier(0.4,0,0.2,1), opacity 0.08s ease 0.13s';
+    clone.style.transform  = `translate(${dx}px,${dy}px) scale(${scale})`;
+    clone.style.opacity    = '0';
+    setTimeout(() => clone.remove(), 320);
+  }));
+}
+
+function triggerDiscardLand() {
+  topCardDisplay.classList.remove('card-land');
+  void topCardDisplay.offsetWidth;
+  topCardDisplay.classList.add('card-land');
+}
+
+function triggerDeckPulse() {
+  drawPile.classList.remove('deck-deal');
+  void drawPile.offsetWidth;
+  drawPile.classList.add('deck-deal');
+  setTimeout(() => drawPile.classList.remove('deck-deal'), 300);
+}
+// ──────────────────────────────────────────────────────────────────────
+
 function renderState(state) {
   currentState = state;
   if (!state) return;
@@ -91,14 +132,12 @@ function renderState(state) {
   const isMyTurn = state.currentPlayerId === mySocketId;
   const me = state.players.find(p => p.id === mySocketId);
 
-  // Top bar
   turnInfo.textContent = isMyTurn
     ? '🎴 내 차례!'
     : `${state.players.find(p => p.id === state.currentPlayerId)?.name || '?'} 차례`;
   turnInfo.classList.toggle('my-turn', isMyTurn);
   directionInfo.textContent = state.direction === 1 ? '▶ 시계 방향' : '◀ 반시계 방향';
 
-  // Draw stack badge
   if (state.drawStack > 0) {
     drawStackBadge.classList.remove('hidden');
     drawStackNum.textContent = state.drawStack;
@@ -106,13 +145,14 @@ function renderState(state) {
     drawStackBadge.classList.add('hidden');
   }
 
-  // Top card
+  // 버린 패 – 바뀐 카드면 land 애니메이션
   if (state.topCard) {
     const tc = state.topCard;
+    const newKey = `${tc.suit}-${tc.rank}`;
     const colorClass = cardColorClass(tc);
     topCardDisplay.className = `card ${colorClass}`;
     topCardRank.textContent = tc.rank === 'Joker' ? 'J○' : tc.rank;
-    topCardSuit.textContent = tc.suit;
+    topCardSuit.textContent  = tc.suit;
     let bottomEl = topCardDisplay.querySelector('.card-rank-bottom');
     if (!bottomEl) {
       bottomEl = document.createElement('div');
@@ -120,22 +160,25 @@ function renderState(state) {
       topCardDisplay.appendChild(bottomEl);
     }
     bottomEl.textContent = tc.rank === 'Joker' ? 'J○' : tc.rank;
+
+    if (prevTopCardKey && prevTopCardKey !== newKey) {
+      topCardDisplay.classList.add('card-land');
+    }
+    prevTopCardKey = newKey;
   }
 
-  // Current suit indicator (when 7 was played)
   if (state.currentSuit) {
     currentSuitDisplay.classList.remove('hidden');
     currentSuitDisplay.classList.add('visible');
-    currentSuitIcon.textContent = state.currentSuit;
-    currentSuitIcon.style.color = isRed(state.currentSuit) ? '#e02020' : '#fff';
+    currentSuitIcon.textContent   = state.currentSuit;
+    currentSuitIcon.style.color   = isRed(state.currentSuit) ? '#e02020' : '#fff';
   } else {
     currentSuitDisplay.classList.add('hidden');
   }
 
-  // Deck count
   deckCount.textContent = state.deckCount;
 
-  // Opponents
+  // 상대 플레이어
   opponentsArea.innerHTML = '';
   for (const p of state.players) {
     if (p.id === mySocketId) continue;
@@ -144,76 +187,50 @@ function renderState(state) {
     if (p.id === state.currentPlayerId) div.classList.add('active-turn');
 
     const miniCards = Math.min(p.cardCount, 8);
-    const miniHTML = Array.from({ length: miniCards }, () => '<div class="mini-card"></div>').join('');
-
+    const miniHTML  = Array.from({ length: miniCards }, () => '<div class="mini-card"></div>').join('');
     div.innerHTML = `
       <div class="opponent-name">${p.isBot ? '🤖 ' : ''}${p.name}</div>
       <div class="opponent-count">${p.cardCount}장</div>
-      <div class="opponent-mini-cards">${miniHTML}</div>
-    `;
+      <div class="opponent-mini-cards">${miniHTML}</div>`;
+    div.dataset.playerName = p.name;
     opponentsArea.appendChild(div);
   }
 
-  // My hand
+  // 내 손패
   if (me?.hand) {
     myHand.innerHTML = '';
     myCardCount.textContent = me.hand.length;
-
     me.hand.forEach((card, idx) => {
       const wrapper = document.createElement('div');
       const playable = isMyTurn && canPlayCard(card);
-      const colorClass = cardColorClass(card);
-      wrapper.className = `card ${colorClass} ${playable ? 'playable' : 'not-playable'}`;
-
+      wrapper.className = `card ${cardColorClass(card)} ${playable ? 'playable' : 'not-playable'}`;
       const rank = card.rank === 'Joker' ? 'J○' : card.rank;
       wrapper.innerHTML = `
         <div class="card-rank">${rank}</div>
         <div class="card-suit">${card.suit}</div>
-        <div class="card-rank-bottom">${rank}</div>
-      `;
-
-      if (playable) {
-        wrapper.addEventListener('click', () => playCard(idx, card));
-      }
+        <div class="card-rank-bottom">${rank}</div>`;
+      if (playable) wrapper.addEventListener('click', () => playCard(idx, card, wrapper));
       myHand.appendChild(wrapper);
     });
-
-    // 원카드 선언 버튼: 내 턴, 2장, 아직 선언 안 함
-    const showOneCard = isMyTurn && me.hand.length === 2 && !me.oneCardSafe;
-    oneCardBtn.classList.toggle('hidden', !showOneCard);
   }
 
-
-  // Draw pile clickable only on my turn
   drawPile.style.opacity = isMyTurn ? '1' : '0.6';
-  drawPile.style.cursor = isMyTurn ? 'pointer' : 'not-allowed';
+  drawPile.style.cursor  = isMyTurn ? 'pointer' : 'not-allowed';
 }
 
-function playCard(idx, card) {
+function playCard(idx, card, cardEl) {
   if (card.rank === '7') {
     pendingCardIndex = idx;
     suitModal.classList.remove('hidden');
     return;
   }
+  animateCardFly(cardEl, card);
   socket.emit('playCard', { cardIndex: idx });
 }
 
-// Draw pile click
 drawPile.addEventListener('click', () => {
   if (!currentState || currentState.currentPlayerId !== mySocketId) return;
   socket.emit('drawCard');
-});
-
-// 원카드 선언 버튼 (2장일 때)
-oneCardBtn.addEventListener('click', () => {
-  socket.emit('declareOneCard');
-});
-
-// 신고 버튼 (미선언 신고 창이 열렸을 때)
-document.getElementById('reportBtn').addEventListener('click', () => {
-  if (!currentState?.pendingOneCardReport) return;
-  if (currentState.pendingOneCardReport.playerId === mySocketId) return;
-  socket.emit('reportUndeclared');
 });
 
 // 스페이스바: 원카드 선언 (내 턴 + 2장) 또는 미선언 신고
@@ -222,10 +239,8 @@ document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
   e.preventDefault();
   if (!currentState) return;
-
-  const me = currentState.players.find(p => p.id === mySocketId);
+  const me       = currentState.players.find(p => p.id === mySocketId);
   const isMyTurn = currentState.currentPlayerId === mySocketId;
-
   if (isMyTurn && me?.hand?.length === 2 && !me?.oneCardSafe) {
     socket.emit('declareOneCard');
     return;
@@ -245,14 +260,12 @@ suitModal.querySelectorAll('.suit-btn').forEach(btn => {
   });
 });
 
-// Game over
 restartBtn.addEventListener('click', () => {
   gameOverModal.classList.add('hidden');
   socket.emit('startGame');
 });
 lobbyBtn.addEventListener('click', () => window.location.href = '/');
 
-// Chat
 chatToggle.addEventListener('click', () => {
   chatPanel.classList.toggle('hidden');
   chatToggle.classList.remove('has-new');
@@ -272,16 +285,11 @@ chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); 
 function addChatMsg(name, message, isSystem = false) {
   const div = document.createElement('div');
   div.className = `chat-msg${isSystem ? ' system' : ''}`;
-  if (isSystem) {
-    div.textContent = message;
-  } else {
-    div.innerHTML = `<span class="msg-name">${name}</span>${message}`;
-  }
+  if (isSystem) { div.textContent = message; }
+  else { div.innerHTML = `<span class="msg-name">${name}</span>${message}`; }
   chatMessages.appendChild(div);
   chatMessages.scrollTop = chatMessages.scrollHeight;
-  if (chatPanel.classList.contains('hidden')) {
-    chatToggle.classList.add('has-new');
-  }
+  if (chatPanel.classList.contains('hidden')) chatToggle.classList.add('has-new');
 }
 
 function showEvent(msg) {
@@ -300,29 +308,36 @@ function showOneCardBanner(name) {
   setTimeout(() => banner.classList.add('hidden'), 2000);
 }
 
-// Socket events
+// ── 소켓 이벤트 ──────────────────────────────────────────────────────
 socket.on('gameUpdate', ({ state }) => renderState(state));
 
 socket.on('cardPlayed', ({ playerName, card, effect, drawStack }) => {
+  // 상대 카드 애니메이션: 해당 opponent-card 요소 → 버린 패
+  if (playerName !== myName) {
+    const opEl = [...opponentsArea.querySelectorAll('.opponent-card')]
+      .find(el => el.dataset.playerName === playerName);
+    if (opEl) animateCardFly(opEl, null);
+  }
+
   const cardStr = card.rank === 'Joker' ? '조커' : `${card.suit}${card.rank}`;
   const effects = {
-    draw2: `🃏 ${playerName}이(가) ${cardStr} → 다음 사람 ${drawStack}장 뽑기!`,
-    drawA: `🃏 ${playerName}이(가) ${cardStr} → 다음 사람 ${drawStack}장 뽑기!`,
-    joker: `★ ${playerName}이(가) 조커! → 다음 사람 ${drawStack}장 뽑기!`,
+    draw2:   `🃏 ${playerName}이(가) ${cardStr} → 다음 사람 ${drawStack}장 뽑기!`,
+    drawA:   `🃏 ${playerName}이(가) ${cardStr} → 다음 사람 ${drawStack}장 뽑기!`,
+    joker:   `★ ${playerName}이(가) 조커! → 다음 사람 ${drawStack}장 뽑기!`,
     reverse: `🔄 ${playerName}이(가) ${cardStr} → 방향 전환!`,
-    skip: `⏭ ${playerName}이(가) ${cardStr} → 다음 사람 스킵!`,
-    skip2: `⏭⏭ ${playerName}이(가) ${cardStr} → 2명 스킵!`,
-    wild: `🌈 ${playerName}이(가) 7 → 무늬 변경!`,
-    normal: `${playerName}이(가) ${cardStr} 냄`
+    skip:    `⏭ ${playerName}이(가) ${cardStr} → 다음 사람 스킵!`,
+    skip2:   `⏭⏭ ${playerName}이(가) ${cardStr} → 2명 스킵!`,
+    wild:    `🌈 ${playerName}이(가) 7 → 무늬 변경!`,
+    normal:  `${playerName}이(가) ${cardStr} 냄`,
   };
-  showEvent(effects[effect] || `${playerName}이(가) ${cardStr} 냄`);
-  addChatMsg('', effects[effect] || `${playerName}이(가) ${cardStr} 냄`, true);
+  const msg = effects[effect] || `${playerName}이(가) ${cardStr} 냄`;
+  showEvent(msg);
+  addChatMsg('', msg, true);
 });
 
 socket.on('cardDrawn', ({ playerName, count }) => {
-  const msg = count > 1
-    ? `😱 ${playerName}이(가) ${count}장 뽑음!`
-    : `${playerName}이(가) 카드 뽑음`;
+  triggerDeckPulse();
+  const msg = count > 1 ? `😱 ${playerName}이(가) ${count}장 뽑음!` : `${playerName}이(가) 카드 뽑음`;
   showEvent(msg);
   addChatMsg('', msg, true);
 });
@@ -350,13 +365,9 @@ socket.on('playerLeft', ({ name, state }) => {
   if (state) renderState(state);
 });
 
-socket.on('chatMessage', ({ playerName, message }) => {
-  addChatMsg(playerName, message);
-});
+socket.on('chatMessage', ({ playerName, message }) => addChatMsg(playerName, message));
 
-socket.on('chooseSuit', () => {
-  suitModal.classList.remove('hidden');
-});
+socket.on('chooseSuit', () => suitModal.classList.remove('hidden'));
 
 socket.on('gameOver', ({ winner, state }) => {
   winnerName.textContent = winner;
@@ -366,15 +377,13 @@ socket.on('gameOver', ({ winner, state }) => {
 
 socket.on('gameStarted', ({ state }) => {
   gameOverModal.classList.add('hidden');
+  prevTopCardKey = null;
   renderState(state);
   showEvent('🃏 새 게임 시작!');
 });
 
-socket.on('actionError', ({ message }) => {
-  showEvent(`❌ ${message}`);
-});
-
-socket.on('joinError', ({ message }) => {
+socket.on('actionError',  ({ message }) => showEvent(`❌ ${message}`));
+socket.on('joinError',    ({ message }) => {
   showEvent(`❌ ${message}`);
   setTimeout(() => window.location.href = '/', 2000);
 });
